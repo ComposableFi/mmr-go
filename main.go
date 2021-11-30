@@ -5,11 +5,73 @@ import (
 	"sort"
 )
 
-func calculatePeakRoot() {}
+func calculatePeakRoot(leaves []leaf, peakPos uint64, proofs *Iterator) (interface{}, error) {
+	if len(leaves) == 0 {
+		// TODO: clarify on how debug_assert! works
+		panic("can't be empty")
+	}
+
+	// (position, hash, height)
+	var queue []leafWithHash
+	for _, l := range leaves {
+		queue = append(queue, leafWithHash{l.pos, l.hash, 0})
+	}
+
+	// calculate tree root from each items
+	for len(queue) > 0 {
+		pop := queue[0]
+		// pop from front
+		queue = queue[1:]
+
+		pos, item, height := pop.pos, pop.hash, pop.height
+		if pos == peakPos {
+			return item, nil
+		}
+		// calculate sibling
+		var nextHeight = posHeightInTree(pos + 1)
+		var sibPos, parentPos = func() (uint64, uint64) {
+			var siblingOffset uint64 = siblingOffset(height)
+			if nextHeight > height {
+				// implies pos is right sibling
+				return pos - siblingOffset, pos + 1
+			} else {
+				// pos is left sibling
+				return pos + siblingOffset, pos + parentOffset(height)
+			}
+		}()
+
+		var siblingItem interface{}
+		if len(queue) > 0 && queue[0].pos == sibPos {
+			siblingItem, queue = queue[0].hash, queue[1:]
+		} else {
+			if siblingItem = proofs.next(); siblingItem == nil {
+				// replace with custom error
+				return nil, fmt.Errorf("corruptedProof")
+			}
+		}
+
+		var parentItem interface{}
+		if nextHeight > height {
+			// TODO: implement actual merge method
+			merge(item)
+		} else {
+			// TODO: implement actual merge method
+			merge(item)
+		}
+
+		if parentPos < peakPos {
+			queue = append(queue, leafWithHash{parentPos, parentItem, height + 1})
+		} else {
+			return parentItem, nil
+		}
+	}
+
+	return nil, fmt.Errorf("corruptedProof")
+}
 
 func calculateRoot() {}
 
-func takeWhileVec(v []leaf, p func(leaf)bool) []leaf {
+func takeWhileVec(v []leaf, p func(leaf) bool) []leaf {
 	for i := 0; i < len(v); i++ {
 		if !p(v[i]) {
 			return v[:i]
@@ -21,10 +83,10 @@ func takeWhileVec(v []leaf, p func(leaf)bool) []leaf {
 // TODO: create and return custom error type
 func calculatePeaksHashes(leaves []leaf, mmrSize uint64, proofs *Iterator) ([]interface{}, error) {
 	// special handle the only 1 leaf MMR
-	if mmrSize == 1 && len(leaves) == 1 && leaves[0].item == 0 {
+	if mmrSize == 1 && len(leaves) == 1 && leaves[0].hash == 0 {
 		var items []interface{}
 		for _, l := range leaves {
-			items = append(items, l.item)
+			items = append(items, l.hash)
 		}
 		return items, nil
 	}
@@ -43,7 +105,7 @@ func calculatePeaksHashes(leaves []leaf, mmrSize uint64, proofs *Iterator) ([]in
 		var peakRoot interface{}
 		if len(leaves) == 1 && leaves[0].pos == peaksPos {
 			// leaf is the peak
-			peakRoot = leaves[0].item
+			peakRoot = leaves[0].hash
 		} else if len(leaves) == 0 {
 			// if empty, means the next proof is a peak root or rhs bagged root
 			if proofs.isEmpty() {
@@ -54,8 +116,11 @@ func calculatePeaksHashes(leaves []leaf, mmrSize uint64, proofs *Iterator) ([]in
 				break
 			}
 		} else {
-			// TODO: implement method
-			calculatePeakRoot()
+			// TODO: test calculatePeakRoot
+			_, err := calculatePeakRoot(leaves, peaksPos, proofs)
+			if err != nil {
+				return nil, err
+			}
 		}
 		peaksHashes = append(peaksHashes, peakRoot)
 	}
@@ -70,12 +135,11 @@ func calculatePeaksHashes(leaves []leaf, mmrSize uint64, proofs *Iterator) ([]in
 	if rhsPeaksHashes := proofs.next(); rhsPeaksHashes != nil {
 		peaksHashes = append(peaksHashes, rhsPeaksHashes)
 	}
+	// ensure nothing left in proof_iter
 	if proofs.next() != nil {
 		// replace with custom error
 		return nil, fmt.Errorf("corruptedProof")
 	}
-
-	// ensure nothing left in proof_iter
 
 	return peaksHashes, nil
 }

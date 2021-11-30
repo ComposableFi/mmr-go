@@ -13,7 +13,7 @@ func leftPeakHeightPos(mmrSize uint64) (uint32, uint64) {
 		prevPos = pos
 		pos = getPeakPosByHeight(height)
 	}
-	return height-1, prevPos
+	return height - 1, prevPos
 }
 
 func siblingOffset(height uint32) uint64 {
@@ -28,7 +28,7 @@ func getRightPeak(height uint32, pos, mmrSize uint64) *peak {
 	// move to right sibling pos
 	pos += siblingOffset(height)
 	// loop until we find a pos in mmr
-	for pos > mmrSize -1 {
+	for pos > mmrSize-1 {
 		if height == 0 {
 			return nil
 		}
@@ -56,3 +56,6 @@ func getPeaks(mmrSize uint64) (pos_s []uint64) {
 	return pos_s
 }
 
+func posHeightInTree(pos uint64) uint32 {
+
+}

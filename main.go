@@ -53,10 +53,10 @@ func calculatePeakRoot(leaves []leaf, peakPos uint64, proofs *Iterator) (interfa
 		var parentItem interface{}
 		if nextHeight > height {
 			// TODO: implement actual merge method
-			merge(item)
+			merge(siblingItem, item)
 		} else {
 			// TODO: implement actual merge method
-			merge(item)
+			merge(item, siblingItem)
 		}
 
 		if parentPos < peakPos {
@@ -69,7 +69,41 @@ func calculatePeakRoot(leaves []leaf, peakPos uint64, proofs *Iterator) (interfa
 	return nil, fmt.Errorf("corruptedProof")
 }
 
-func calculateRoot() {}
+func baggingPeaksHashes(peaksHashes []interface{}) (interface{}, error) {
+	pop := func(ph []interface{}) (interface{}, []interface{}) {
+		if len(ph) == 0 {
+			return nil, ph[:]
+		}
+		// return the last item in the slice and the rest of the slice excluding the last item
+		return ph[len(ph)-1], ph[:len(ph)-1]
+	}
+
+	var rightPeak, leftPeak interface{}
+	for len(peaksHashes) > 1 {
+		if rightPeak, peaksHashes = pop(peaksHashes); rightPeak == nil {
+			panic("pop")
+		}
+
+		if leftPeak, peaksHashes = pop(peaksHashes); leftPeak == nil {
+			panic("pop")
+		}
+		peaksHashes = append(peaksHashes, merge(rightPeak, leftPeak))
+	}
+
+	if len(peaksHashes) == 0 {
+		return nil, fmt.Errorf("corruptedProof")
+	}
+	return peaksHashes[len(peaksHashes)-1], nil
+}
+
+func calculateRoot(leaves []leaf, mmrSize uint64, proofs *Iterator) (interface{}, error) {
+	var peaksHashes, err = calculatePeaksHashes(leaves, mmrSize, proofs)
+	if err != nil {
+		return nil, err
+	}
+
+	return baggingPeaksHashes(peaksHashes)
+}
 
 func takeWhileVec(v []leaf, p func(leaf) bool) []leaf {
 	for i := 0; i < len(v); i++ {

@@ -1,5 +1,7 @@
 package mmr
 
+import "strconv"
+
 func getPeakPosByHeight(height uint32) uint64 {
 	return (1 << (height + 1)) - 2
 }
@@ -57,5 +59,41 @@ func getPeaks(mmrSize uint64) (pos_s []uint64) {
 }
 
 func posHeightInTree(pos uint64) uint32 {
+	pos += 1
+	allOnes := func(num uint64) bool { return num != 0 && countZeros(num) == countLeadingZeros(num) }
+	jumpLeft := func(pos uint64) uint64 {
+		var bitLength = uint32(64 - countLeadingZeros(pos))
+		var mostSignificantBits uint64 = 1 << (bitLength - 1)
+		return pos - (mostSignificantBits - 1)
+	}
 
+	for !allOnes(pos) {
+		pos = jumpLeft(pos)
+	}
+
+	return uint32(64 - countLeadingZeros(pos) - 1)
+}
+
+func countLeadingZeros(num uint64) int {
+	str := strconv.Itoa(int(num))
+	counter := 0
+	for _, value := range str {
+		if value == '0' {
+			counter++
+		} else {
+			break
+		}
+	}
+	return counter
+}
+
+func countZeros(num uint64) int {
+	str := strconv.Itoa(int(num))
+	counter := 0
+	for _, value := range str {
+		if value == '0' {
+			counter++
+		}
+	}
+	return counter
 }

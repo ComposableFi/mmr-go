@@ -1,6 +1,9 @@
 package mmr
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 func getPeakPosByHeight(height uint32) uint64 {
 	return (1 << (height + 1)) - 2
@@ -68,6 +71,7 @@ func posHeightInTree(pos uint64) uint32 {
 	}
 
 	for !allOnes(pos) {
+		fmt.Printf("pos %v \n", pos)
 		pos = jumpLeft(pos)
 	}
 
@@ -75,7 +79,7 @@ func posHeightInTree(pos uint64) uint32 {
 }
 
 func countLeadingZeros(num uint64) int {
-	str := strconv.Itoa(int(num))
+	str := strconv.FormatInt(int64(num), 2)
 	counter := 0
 	for _, value := range str {
 		if value == '0' {
@@ -88,7 +92,7 @@ func countLeadingZeros(num uint64) int {
 }
 
 func countZeros(num uint64) int {
-	str := strconv.Itoa(int(num))
+	str := strconv.FormatInt(int64(num), 2)
 	counter := 0
 	for _, value := range str {
 		if value == '0' {
@@ -96,4 +100,12 @@ func countZeros(num uint64) int {
 		}
 	}
 	return counter
+}
+
+func pop(ph []interface{}) (interface{}, []interface{}) {
+	if len(ph) == 0 {
+		return nil, ph[:]
+	}
+	// return the last item in the slice and the rest of the slice excluding the last item
+	return ph[len(ph)-1], ph[:len(ph)-1]
 }

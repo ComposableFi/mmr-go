@@ -5,7 +5,7 @@ type Iterator struct {
 	index uint64
 }
 
-func (i *Iterator) new() *Iterator {
+func NewIterator() *Iterator {
 	return &Iterator{
 		item: make([]interface{}, 0),
 	}
